@@ -6,10 +6,12 @@ const cors = require('cors');
 const fs = require('fs');
 const app = express();
 
-// Ensure uploads directory exists
-const uploadsDir = require('path').join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir);
+// Only create uploads directory if running locally (not on Vercel serverless)
+if (process.env.VERCEL !== '1') {
+  const uploadsDir = require('path').join(__dirname, 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir);
+  }
 }
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
