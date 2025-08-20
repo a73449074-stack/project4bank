@@ -70,7 +70,7 @@ export default function ProfileSettings({ onPinSet }) {
       // Optimistically update localStorage immediately
       localStorage.setItem('user', JSON.stringify({ ...user, name, profilePic }));
       // Send PATCH request to backend to update user profile
-      const res = await fetch(`http://localhost:5000/api/users/${user._id}/profile`, {
+  const res = await fetch(`/api/users/${user._id}/profile`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, profilePic })

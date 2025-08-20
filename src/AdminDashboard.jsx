@@ -18,7 +18,7 @@ import html2canvas from "html2canvas";
 function AdminMainBalance() {
   const [total, setTotal] = React.useState(0);
   React.useEffect(() => {
-    fetch('http://localhost:5000/api/users')
+  fetch('/api/users')
       .then(res => res.json())
       .then(users => {
         const sum = users.reduce((acc, u) => acc + (typeof u.balance === 'number' ? u.balance : 0), 0);
@@ -121,7 +121,7 @@ export default function AdminDashboard() {
   // Only keep new transactions (approved/declined after mount)
   // FIX: Always show all pending transactions for admin approval
   const fetchAll = () => {
-    fetch('http://localhost:5000/api/users')
+  fetch('/api/users')
       .then(res => res.json())
       .then(data => {
         setPendingUsers(data.filter(u => !u.approved));
@@ -132,7 +132,7 @@ export default function AdminDashboard() {
         setError('Failed to load users');
         setLoading(false);
       });
-    fetch('http://localhost:5000/api/transactions')
+  fetch('/api/transactions')
       .then(res => res.json())
       .then(data => {
         setTransactions(data); // Always show all transactions
@@ -147,7 +147,7 @@ export default function AdminDashboard() {
 
   const approveUser = async (id) => {
     setApproving(id);
-    await fetch(`http://localhost:5000/api/users/${id}/approve`, { method: 'PATCH' });
+  await fetch(`/api/users/${id}/approve`, { method: 'PATCH' });
     setApproving('');
   };
 
@@ -555,7 +555,7 @@ export default function AdminDashboard() {
                         if (!window.confirm('Delete this user?')) return;
                         setUserActionLoading(true); setUserActionError('');
                         try {
-                          await fetch(`http://localhost:5000/api/users/${selectedUser._id}`, { method: 'DELETE' });
+                          await fetch(`/api/users/${selectedUser._id}`, { method: 'DELETE' });
                           setSelectedUser(null); fetchAll();
                           setFeedback('User has been deleted successfully.');
                         } catch { setUserActionError('Failed to delete user'); }
@@ -572,7 +572,7 @@ export default function AdminDashboard() {
                       <button className="px-2 py-1 bg-green-600 text-white rounded text-xs" disabled={userActionLoading || !addFunds.amount || !addFunds.name || !addFunds.bank} onClick={async () => {
                         setUserActionLoading(true); setUserActionError('');
                         try {
-                          await fetch(`http://localhost:5000/api/users/${selectedUser._id}/add-funds`, {
+                          await fetch(`/api/users/${selectedUser._id}/add-funds`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ amount: addFunds.amount, name: addFunds.name, bank: addFunds.bank })

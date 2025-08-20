@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const API_URL = 'http://localhost:5000/api/auth';
+const API_URL = '/api/auth';
 
 export default function LoginPage({ onLogin }) {
 
@@ -48,7 +48,7 @@ export default function LoginPage({ onLogin }) {
           // If not base64, treat as file
           picData.append('profilePic', form.profilePic);
         }
-        const uploadRes = await fetch('http://localhost:5000/api/upload/profile-pic', {
+  const uploadRes = await fetch('/api/upload/profile-pic', {
           method: 'POST',
           body: picData
         });
