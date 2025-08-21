@@ -30,9 +30,16 @@ app.get('/', (req, res) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/transactions', require('./routes/transactions'));
-app.use('/api/upload', require('./routes/upload'));
-app.use('/uploads', express.static(require('path').join(__dirname, 'uploads')));
+  // Profile picture upload route removed
 
 
 // For Vercel: export the app instead of listening
 module.exports = app;
+
+// Start server locally if not required by another module (for Vercel compatibility)
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}

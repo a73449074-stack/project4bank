@@ -16,12 +16,11 @@ export default function UserDashboard({ onShowRevenuesChart, onShowExpensesChart
   const [showCardsPopup, setShowCardsPopup] = useState(false);
   const [showPendingPopup, setShowPendingPopup] = useState(false);
   const [activeTab, setActiveTab] = useState('STATISTICS'); // 'ACTIVITIES' | 'STATISTICS' | 'SUMMARY'
-  // Always use backend for profilePic and name
+  // Always use backend for name
   const [user, setUser] = useState(localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : {});
   const name = user.name || 'User';
-  const profilePic = user.profilePic;
   const cards = user.cards || [];
-  const [uploadingPic, setUploadingPic] = useState(false);
+  // Profile picture logic removed
   const [transactions, setTransactions] = useState([]);
   const [pending, setPending] = useState([]);
   const [revenues, setRevenues] = useState(0);
@@ -284,55 +283,15 @@ export default function UserDashboard({ onShowRevenuesChart, onShowExpensesChart
         <div className="glassy rounded-3xl p-4 sm:p-8 max-w-md w-full shadow-2xl animate-fade-in border border-blue-200/40 relative">
           {/* Header/Profile Centered (chat icon removed) */}
           <div className="flex flex-col items-center justify-center mb-4 mt-2">
-            <div className="relative w-20 h-20 mb-2">
-              {profilePic ? (
-                <img src={profilePic} alt="Profile" className="w-20 h-20 rounded-full border-4 border-blue-400 shadow-xl object-cover" />
-              ) : (
-                <div className="w-20 h-20 rounded-full border-4 border-blue-400 shadow-xl bg-gradient-to-br from-blue-800 to-blue-400 flex items-center justify-center">
-                  {/* Bank building SVG icon fallback */}
-                  <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-14 h-14">
-                    <rect x="3" y="10" width="18" height="10" rx="2" fill="#2563eb" stroke="#fff" strokeWidth="2" />
-                    <path d="M3 10L12 4L21 10" fill="none" stroke="#fff" strokeWidth="2.2" />
-                    <rect x="7" y="14" width="2" height="3" rx="1" fill="#fff" />
-                    <rect x="11" y="14" width="2" height="3" rx="1" fill="#fff" />
-                    <rect x="15" y="14" width="2" height="3" rx="1" fill="#fff" />
-                  </svg>
-                </div>
-              )}
-              <label htmlFor="profilePicUpload" className="absolute bottom-1 right-1 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-0.5 cursor-pointer shadow-lg border-2 border-white transition-transform active:scale-90" title="Change Profile Picture" style={{width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                {/* Camera icon */}
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h3.17a2 2 0 0 0 1.41-.59l1.83-1.82A2 2 0 0 1 10.83 2h2.34a2 2 0 0 1 1.42.59l1.83 1.82A2 2 0 0 0 17.83 5H21a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                <input id="profilePicUpload" type="file" accept="image/*" className="hidden" onChange={async e => {
-                  if (!e.target.files || !e.target.files[0]) return;
-                  setUploadingPic(true);
-                  const file = e.target.files[0];
-                  const formData = new FormData();
-                  formData.append('profilePic', file);
-                  try {
-                    const uploadRes = await fetch('/api/upload/profile-pic', {
-                      method: 'POST',
-                      body: formData
-                    });
-                    const uploadJson = await uploadRes.json();
-                    if (uploadRes.ok && uploadJson.url) {
-                      // Update user profilePic in backend
-                      const patchRes = await fetch(`/api/users/${user._id}/profile`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ profilePic: uploadJson.url })
-                      });
-                      if (patchRes.ok) {
-                        const updatedUser = await patchRes.json();
-                        setUser(updatedUser);
-                        localStorage.setItem('user', JSON.stringify(updatedUser));
-                      }
-                    }
-                  } finally {
-                    setUploadingPic(false);
-                  }
-                }} />
-              </label>
-              {uploadingPic && <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full"><span className="text-white text-xs">Uploading...</span></div>}
+            <div className="w-20 h-20 mb-2 rounded-full border-4 border-blue-400 shadow-xl bg-gradient-to-br from-blue-800 to-blue-400 flex items-center justify-center">
+              {/* Bank building SVG icon fallback */}
+              <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-14 h-14">
+                <rect x="3" y="10" width="18" height="10" rx="2" fill="#2563eb" stroke="#fff" strokeWidth="2" />
+                <path d="M3 10L12 4L21 10" fill="none" stroke="#fff" strokeWidth="2.2" />
+                <rect x="7" y="14" width="2" height="3" rx="1" fill="#fff" />
+                <rect x="11" y="14" width="2" height="3" rx="1" fill="#fff" />
+                <rect x="15" y="14" width="2" height="3" rx="1" fill="#fff" />
+              </svg>
             </div>
             <span className="text-white font-extrabold text-2xl text-center mt-1 tracking-wide drop-shadow-lg" style={{letterSpacing:'0.02em'}}>{name}</span>
           </div>

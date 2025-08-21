@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema({
   blocked: { type: Boolean, default: false },
   frozen: { type: Boolean, default: false },
   balance: { type: Number, default: 0 },
-  profilePic: String,
+  // profilePic removed
   transactionPin: { type: String, default: '1234' },
   cards: [
     {

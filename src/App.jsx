@@ -230,10 +230,13 @@ function App() {
   const ProfilePopup = ({onBack}) => {
     return (
       <div className="glassy-popup rounded-2xl p-8 shadow-2xl animate-fade-in w-96 max-w-full relative">
-        <button className="absolute top-3 right-3 text-gray-400 hover:text-red-500" onClick={() => setShowProfilePopup(false)}>✕</button>
+        <button className="absolute top-3 right-3 text-gray-400 hover:text-red-500" onClick={() => setShowProfilePopup(false)}>
+7</button>
         <div className="text-xl font-bold mb-4 text-center">Profile</div>
         <div className="flex flex-col items-center gap-2 mb-4">
-          <img src={user?.profilePic || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user?.email || 'U')} alt="Profile" className="w-20 h-20 rounded-full object-cover border-2 border-blue-300" />
+          <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center border-2 border-blue-300 text-2xl font-bold text-blue-700">
+            {user?.email ? user.email[0].toUpperCase() : 'U'}
+          </div>
         </div>
         <div className="flex flex-col gap-4">
           <div className="flex flex-col">

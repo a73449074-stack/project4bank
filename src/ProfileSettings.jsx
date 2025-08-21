@@ -5,7 +5,7 @@ import GlassyLoader from './GlassyLoader.jsx';
 export default function ProfileSettings({ onPinSet }) {
   const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : {};
   const [name, setName] = useState(user.name || 'User');
-  const [profilePic, setProfilePic] = useState(user.profilePic);
+  // Profile picture logic removed
   const [saving, setSaving] = useState(false);
   const [cards, setCards] = useState(['**** **** **** 1234']);
   const [newCard, setNewCard] = useState('');
@@ -46,16 +46,7 @@ export default function ProfileSettings({ onPinSet }) {
     }
   };
 
-  const handlePicChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfilePic(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  // Profile picture logic removed
 
   const handleAddCard = () => {
     if (newCard.length === 16) {
@@ -68,19 +59,18 @@ export default function ProfileSettings({ onPinSet }) {
     setSaving(true);
     try {
       // Optimistically update localStorage immediately
-      localStorage.setItem('user', JSON.stringify({ ...user, name, profilePic }));
+      localStorage.setItem('user', JSON.stringify({ ...user, name }));
       // Send PATCH request to backend to update user profile
-  const res = await fetch(`/api/users/${user._id}/profile`, {
+      const res = await fetch(`/api/users/${user._id}/profile`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, profilePic })
+        body: JSON.stringify({ name })
       });
       if (res.ok) {
         const updated = await res.json();
         localStorage.setItem('user', JSON.stringify(updated));
         window.dispatchEvent(new Event('profileUpdated'));
         setName(updated.name || 'User');
-        setProfilePic(updated.profilePic);
         setTimeout(() => {
           setSaving(false);
         }, 500);
@@ -100,12 +90,8 @@ export default function ProfileSettings({ onPinSet }) {
       <div className={`glassy rounded-3xl p-10 max-w-md w-full shadow-2xl animate-fade-in border border-blue-200/40 ${saving || pinLoading ? 'opacity-40 pointer-events-none' : ''}`}>
         <h2 className="text-2xl font-bold mb-4 text-center text-white">Profile Settings</h2>
         <div className="flex flex-col items-center gap-4 mb-6">
-          <div className="w-28 h-28 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden border-4 border-blue-400 mb-2 shadow-xl">
-            {profilePic ? (
-              <img src={profilePic} alt="Profile" className="object-cover w-full h-full" />
-            ) : (
-              <div className="w-full h-full bg-gray-300 flex items-center justify-center text-gray-500">No Image</div>
-            )}
+          <div className="w-28 h-28 rounded-full bg-gray-200 flex items-center justify-center border-4 border-blue-400 text-3xl font-bold text-blue-700 mb-2 shadow-xl">
+            {user?.email ? user.email[0].toUpperCase() : 'U'}
           </div>
           <input
             type="text"

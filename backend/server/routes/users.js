@@ -105,10 +105,9 @@ router.patch('/:id/transaction-pin', async (req, res) => {
 // Update user profile (name, profilePic)
 router.patch('/:id/profile', async (req, res) => {
   try {
-    const { name, profilePic } = req.body;
+    const { name } = req.body;
     const update = {};
     if (name) update.name = name;
-    if (profilePic) update.profilePic = profilePic;
     const user = await User.findByIdAndUpdate(req.params.id, update, { new: true });
     res.json(user);
   } catch (err) {

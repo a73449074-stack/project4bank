@@ -26,23 +26,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // POST /api/upload/profile-pic
-router.post('/profile-pic', upload.single('profilePic'), (req, res) => {
-  try {
-    console.log('HEADERS:', req.headers);
-    console.log('BODY:', req.body);
-    if (!req.file) {
-      console.error('No file uploaded:', req.body, req.headers);
-      return res.status(400).json({ message: 'No file uploaded', debug: req.body });
-    }
-    // Return the absolute URL to the uploaded file
-    const protocol = req.protocol;
-    const host = req.get('host');
-    const url = `${protocol}://${host}/uploads/${req.file.filename}`;
-    res.json({ url });
-  } catch (err) {
-    console.error('Upload error:', err);
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-});
+// Profile picture upload route removed
 
 module.exports = router;
