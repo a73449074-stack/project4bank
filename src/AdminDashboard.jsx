@@ -11,6 +11,7 @@ function FeedbackPopup({ message, onClose }) {
   );
 }
 import React, { useState, useEffect } from "react";
+import ChatWithAdmin from './ChatWithAdmin';
 import html2canvas from "html2canvas";
 
 
@@ -31,7 +32,18 @@ function AdminMainBalance() {
 }
 
 export default function AdminDashboard() {
+  const [showChat, setShowChat] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [showPendingModal, setShowPendingModal] = useState(false);
+  // Get admin user from localStorage (must be logged in as admin)
+  const [admin, setAdmin] = useState(() => {
+    try {
+      const u = localStorage.getItem('user');
+      return u ? JSON.parse(u) : {};
+    } catch {
+      return {};
+    }
+  });
 
   // Sidebar open/close state (default: closed, never auto-opens)
   const [sidebarOpen, setSidebarOpen] = useState(() => false);
@@ -159,15 +171,35 @@ export default function AdminDashboard() {
 
   return (
     <>
-      {/* Sidebar toggle button */}
-      <button
-        className="fixed top-4 left-4 z-50 bg-blue-600 text-white rounded-full p-2 shadow-lg focus:outline-none"
-        onClick={() => setSidebarOpen(true)}
-        aria-label="Toggle sidebar"
-      >
-        {/* Hamburger icon */}
-        <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-menu"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
-      </button>
+      {/* Top Bar with Hamburger and Chat Icon */}
+      <div className="fixed top-4 left-4 right-4 z-50 flex items-center justify-between">
+        {/* Sidebar toggle button */}
+        <button
+          className="bg-blue-600 text-white rounded-full p-2 shadow-lg focus:outline-none"
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Toggle sidebar"
+        >
+          {/* Hamburger icon */}
+          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-menu"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+        </button>
+        {/* Chat Icon */}
+        <button
+          className="w-12 h-12 p-2 flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all duration-200"
+          onClick={() => setShowChat(true)}
+          aria-label="Chat with users"
+        >
+          <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </button>
+      </div>
+      {showChat && (
+        <ChatWithAdmin
+          isAdmin={true}
+          users={approvedUsers}
+          userId={admin && admin._id ? admin._id : ''}
+          onClose={() => setShowChat(false)}
+        />
+      )}
+  {/* ...existing code... */}
 
       {/* Sidebar (hidden by default, slides in when open) */}
       <div
@@ -243,7 +275,7 @@ export default function AdminDashboard() {
                 </button>
                 <button
                   className="stat-card bg-yellow-400/90 rounded-xl p-3 text-white shadow-md transition-transform duration-200 hover:scale-105 hover:shadow-2xl focus:outline-none"
-                  onClick={() => setActiveTab('activities')}
+                  onClick={() => setShowPendingModal(true)}
                 >
                   <div className="text-xs">PENDING REQUESTS</div>
                   <div className="text-lg font-bold">{pendingUsers.length}</div>
@@ -268,29 +300,7 @@ export default function AdminDashboard() {
               </div>
             </>
           )}
-          {activeTab === 'activities' && (
-            <div className="mb-4">
-              <div className="text-white/80 font-semibold text-sm mb-2">Recent Activities</div>
-              <div className="bg-white/10 rounded-xl p-3">
-                {transactions.length === 0 ? (
-                  <div className="text-green-400 text-xs">No activities yet</div>
-                ) : (
-                  <ul className="divide-y divide-white/10">
-                    {transactions.slice(0, 5).map((tx) => (
-                      <li key={tx._id} className="flex items-center justify-between py-2">
-                        <div className="flex-1">
-                          <span className="text-white font-medium text-xs">{tx.type.toUpperCase()} ({tx.status})</span>
-                          <div className="text-white/50 text-[10px]">{new Date(tx.createdAt).toLocaleString()}</div>
-                          <div className="text-white/50 text-[10px]">User: {tx.user?.name || tx.user}</div>
-                        </div>
-                        <span className={tx.type === 'deposit' ? 'text-green-400 font-bold text-xs' : 'text-red-400 font-bold text-xs'}>{tx.amount} $</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Recent Activities section under activities tab removed as requested */}
           {activeTab === 'summary' && (
             <div className="mb-4">
               <div className="text-white/80 font-semibold text-sm mb-2">Summary</div>
@@ -317,10 +327,7 @@ export default function AdminDashboard() {
                 <div className="text-red-400 text-xs">{txError}</div>
               ) : (
                 <>
-                  <button
-                    className="mb-2 px-3 py-1 bg-red-500 text-white rounded text-xs"
-                    onClick={() => setTransactions([])}
-                  >Clear All Receipts</button>
+                  {/* Clear All Receipts button removed as requested */}
                   <ul className="divide-y divide-white/10">
                     {transactions.length === 0 && <li className="text-green-400 text-xs">No transactions</li>}
                     {[...transactions].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((tx) => (
@@ -388,32 +395,54 @@ export default function AdminDashboard() {
             </div>
           )}
           {/* Pending Users Section */}
-          <div className="mt-4">
-            <div className="text-white/80 font-semibold text-sm mb-2">Pending User Approvals</div>
-            <div className="bg-white/10 rounded-xl p-3">
-              {loading ? (
-                <div className="text-white/70 text-xs">Loading...</div>
-              ) : error ? (
-                <div className="text-red-400 text-xs">{error}</div>
-              ) : (
-                <ul>
-                  {pendingUsers.length === 0 && <li className="text-green-400 text-xs">No pending users</li>}
-                  {pendingUsers.map((u) => (
-                    <li key={u._id} className="flex items-center justify-between py-1">
-                      <span className="text-white/90 text-xs">{u.name}</span>
+          {/* Pending Users Section moved to modal */}
+      {/* Pending Users Modal */}
+      {showPendingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-0 pointer-events-none">
+          <div
+            className="absolute left-1/2 bg-white rounded-lg shadow-xl p-4 w-72 border border-gray-200 pointer-events-auto animate-fade-in"
+            style={{
+              top: '8%',
+              left: '20%',
+              transform: 'translate(-50%, -50%)',
+              minWidth: '260px',
+              maxWidth: '90vw'
+            }}
+          >
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-base font-semibold">Pending Requests</h2>
+              <button onClick={() => setShowPendingModal(false)} className="text-gray-500 hover:text-red-500 text-xl">&times;</button>
+            </div>
+            {loading ? (
+              <div className="text-gray-600 text-xs">Loading...</div>
+            ) : error ? (
+              <div className="text-red-500 text-xs">{error}</div>
+            ) : (
+              <ul>
+                {pendingUsers.length === 0 && <li className="text-green-500 text-xs">No pending users</li>}
+                {pendingUsers.map((u) => (
+                  <li key={u._id} className="flex items-center justify-between py-1 border-b last:border-b-0">
+                    <span className="text-gray-800 text-xs">{u.name}</span>
+                    <div className="flex gap-2">
                       <button
-                        className="ml-2 px-2 py-0.5 bg-blue-500 text-white rounded text-xs disabled:opacity-50"
+                        className="px-2 py-0.5 bg-blue-500 text-white rounded text-xs disabled:opacity-50"
                         onClick={() => approveUser(u._id)}
                         disabled={approving === u._id}
                       >
-                        {approving === u._id ? "Approving..." : "Approve"}
+                        {approving === u._id ? "..." : "Approve"}
                       </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+                      <button
+                        className="px-2 py-0.5 bg-red-500 text-white rounded text-xs"
+                        onClick={() => deleteUser(u._id)}
+                      >Del</button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
+        </div>
+      )}
           <style>{`
             .glassy {
               background: rgba(40, 50, 80, 0.85);

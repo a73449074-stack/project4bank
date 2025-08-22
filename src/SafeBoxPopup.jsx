@@ -22,11 +22,11 @@ export default function SafeBoxPopup({ onClose, user }) {
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="glassy-popup rounded-xl shadow-2xl p-6 w-96 max-w-full text-gray-900 relative animate-fade-in border border-blue-200/40">
         <button className="absolute top-3 right-3 text-gray-400 hover:text-red-500" onClick={onClose}>✕</button>
-        <div className="font-bold text-lg mb-2 text-center">Safe Box</div>
+  <div className="font-bold text-lg mb-2 text-center">Savings</div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div>
-            <label className="block text-xs font-semibold mb-1">Amount to Save</label>
-            <input className="w-full rounded p-2 border" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Amount" type="number" min="1" required />
+            <label className="block text-xs font-semibold mb-1">Amount to Save (USD)</label>
+            <input className="w-full rounded p-2 border" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Amount in USD" type="number" min="1" required />
           </div>
           <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-full shadow-lg transition-all duration-200" disabled={loading}>{loading ? 'Processing...' : 'Save'}</button>
           {success && <div className="text-green-600 text-xs text-center mt-2">{success}</div>}

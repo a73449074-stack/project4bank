@@ -1,6 +1,19 @@
-import { useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { getUser } from './api.js';
-import React, { useRef, useState } from 'react';
+
+// Success popup component
+function SuccessPopup({ message, onClose }) {
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-2xl p-6 w-72 text-center animate-fade-in">
+        <div className="text-green-600 font-bold text-lg mb-2">Success</div>
+        <div className="text-gray-800 mb-4">{message}</div>
+        <button className="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600" onClick={onClose}>OK</button>
+      </div>
+    </div>
+  );
+}
+import ChatWithAdmin from './ChatWithAdmin';
 import html2canvas from "html2canvas";
 import AirtimePopup from './AirtimePopup';
 import DataPopup from './DataPopup';
@@ -9,8 +22,18 @@ import TVPopup from './TVPopup';
 import SafeBoxPopup from './SafeBoxPopup';
 import LoanPopup from './LoanPopup';
 import ReferPopup from './ReferPopup';
+import DepositPopup from './DepositPopup';
+import WithdrawPopup from './WithdrawPopup';
+import TransferPopup from './TransferPopup';
 
 export default function UserDashboard({ onShowRevenuesChart, onShowExpensesChart }) {
+  const [showDeposit, setShowDeposit] = useState(false);
+  const [showWithdraw, setShowWithdraw] = useState(false);
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
+  const [adminId, setAdminId] = useState('');
   const [popupData, setPopupData] = useState(null);
   const [receiptData, setReceiptData] = useState(null);
   const [showCardsPopup, setShowCardsPopup] = useState(false);
@@ -18,6 +41,33 @@ export default function UserDashboard({ onShowRevenuesChart, onShowExpensesChart
   const [activeTab, setActiveTab] = useState('STATISTICS'); // 'ACTIVITIES' | 'STATISTICS' | 'SUMMARY'
   // Always use backend for name
   const [user, setUser] = useState(localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : {});
+  // Animated balance state
+  const [displayBalance, setDisplayBalance] = useState(0);
+  // Animate balance on user change
+  useEffect(() => {
+    if (typeof user.balance === 'number') {
+      let start = 0;
+      const end = user.balance;
+      const duration = 900; // ms
+      const frameRate = 1000 / 60; // 60fps
+      const totalFrames = Math.round(duration / frameRate);
+      let frame = 0;
+      function animate() {
+        frame++;
+        const progress = Math.min(frame / totalFrames, 1);
+        const current = start + (end - start) * progress;
+        setDisplayBalance(current);
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          setDisplayBalance(end);
+        }
+      }
+      animate();
+    } else {
+      setDisplayBalance(0);
+    }
+  }, [user.balance]);
   const name = user.name || 'User';
   const cards = user.cards || [];
   // Profile picture logic removed
@@ -35,7 +85,7 @@ export default function UserDashboard({ onShowRevenuesChart, onShowExpensesChart
   const [showLoan, setShowLoan] = useState(false);
   const [showRefer, setShowRefer] = useState(false);
 
-  async function fetchTransactionsAndUser() {
+  async function fetchTransactionsAndUser(showSuccessPopup = false) {
     if (!user._id) return;
     // Fetch user from backend for fresh balance and profilePic
     const userRes = await fetch(`/api/users/${user._id}`);
@@ -72,6 +122,11 @@ export default function UserDashboard({ onShowRevenuesChart, onShowExpensesChart
         setRevenues(rev);
         setExpenses(exp);
       }
+      // Show success popup if requested
+      if (showSuccessPopup) {
+        setSuccessMsg('Your transaction was successful!');
+        setShowSuccess(true);
+      }
     } else {
       setTransactions([]);
       setPending([]);
@@ -82,6 +137,13 @@ export default function UserDashboard({ onShowRevenuesChart, onShowExpensesChart
 
   useEffect(() => {
     fetchTransactionsAndUser();
+    // Fetch admin user ID for chat
+    fetch('/api/users')
+      .then(res => res.json())
+      .then(users => {
+        const adminUser = users.find(u => u.isAdmin);
+        if (adminUser) setAdminId(adminUser._id);
+      });
     const handler = () => fetchTransactionsAndUser();
     window.addEventListener('profileUpdated', handler);
     return () => window.removeEventListener('profileUpdated', handler);
@@ -101,21 +163,15 @@ export default function UserDashboard({ onShowRevenuesChart, onShowExpensesChart
     window.location.reload();
   }
   const receiptRef = useRef();
-  function downloadReceipt() {
-    if (!popupData) return;
-    setReceiptData(popupData);
-    setTimeout(() => {
-      if (receiptRef.current) {
-        (async () => {
-          const canvas = await html2canvas(receiptRef.current);
-          const link = document.createElement('a');
-          link.href = canvas.toDataURL('image/png');
-          link.download = `${popupData.title.replace(/\s+/g, '_')}_receipt.png`;
-          link.click();
-          setReceiptData(null);
-        })();
-      }
-    }, 100);
+  async function downloadReceipt() {
+    if (!receiptRef.current) return;
+    const canvas = await html2canvas(receiptRef.current);
+    const link = document.createElement('a');
+    link.href = canvas.toDataURL('image/png');
+    link.download = `${(popupData?.title || 'transaction').replace(/\s+/g, '_')}_receipt.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
   // Handler to reset all transactions and balance
   async function handleResetAccount() {
@@ -128,13 +184,45 @@ export default function UserDashboard({ onShowRevenuesChart, onShowExpensesChart
       // Optionally update user balance in localStorage
       const updatedUser = { ...user, balance: 0 };
       localStorage.setItem('user', JSON.stringify(updatedUser));
-      window.location.reload();
+      setSuccessMsg('Your account has been reset successfully!');
+      setShowSuccess(true);
+      setTimeout(() => window.location.reload(), 1500);
     }
   }
   // Main render
   // (fragment and return below)
   return (
   <>
+  {/* Deposit/Withdraw/Transfer Popups */}
+  {showDeposit && (
+    <DepositPopup onClose={() => setShowDeposit(false)} transactionPin={user.transactionPin} setShowTransactionPopup={setShowDeposit} onSuccess={msg => { setShowDeposit(false); setSuccessMsg(msg || 'Your transaction was successful!'); setShowSuccess(true); }} />
+  )}
+  {showWithdraw && (
+    <WithdrawPopup onClose={() => setShowWithdraw(false)} setShowTransactionPopup={setShowWithdraw} onSuccess={msg => { setShowWithdraw(false); setSuccessMsg(msg || 'Your transaction was successful!'); setShowSuccess(true); }} />
+  )}
+  {showTransfer && (
+    <TransferPopup onClose={() => setShowTransfer(false)} transactionPin={user.transactionPin} setShowTransactionPopup={setShowTransfer} onSuccess={msg => { setShowTransfer(false); setSuccessMsg(msg || 'Your transaction was successful!'); setShowSuccess(true); }} />
+  )}
+  {/* Success Popup */}
+  {showSuccess && <SuccessPopup message={successMsg} onClose={() => setShowSuccess(false)} />}
+  {/* Top Bar with Chat Icon */}
+      <div className="fixed top-4 right-4 z-50 flex items-center justify-end w-full">
+        <button
+          className="w-12 h-12 p-2 flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all duration-200"
+          onClick={() => setShowChat(true)}
+          aria-label="Chat with admin"
+        >
+          <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </button>
+      </div>
+      {showChat && (
+        <ChatWithAdmin
+          isAdmin={false}
+          userId={user._id}
+          adminId={adminId}
+          onClose={() => setShowChat(false)}
+        />
+      )}
       {/* Cards Linked Popup */}
       {showCardsPopup && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
@@ -205,22 +293,24 @@ export default function UserDashboard({ onShowRevenuesChart, onShowExpensesChart
               border: '1.5px solid rgba(100,180,255,0.18)'
             }}
           >
-            <div className="font-bold text-lg mb-2 text-center">Transaction Receipt</div>
-            <div className="mb-1"><span className="font-semibold">Transaction ID:</span> {popupData.id || 'TXN123456'}</div>
-            <div className="mb-1"><span className="font-semibold">Section ID:</span> {popupData.sectionId || 'SEC-001'}</div>
-            <div className="mb-1"><span className="font-semibold">Recipient Name:</span> {popupData.recipient === 'John Doe' || popupData.recipient === 'Jane Smith' ? 'Support' : (popupData.recipient || 'Support')}</div>
-            <div className="mb-1"><span className="font-semibold">Sender Details:</span> {popupData.sender && (popupData.sender.includes('Jane Smith') || popupData.sender.includes('John Doe')) ? popupData.sender.replace(/Jane Smith|John Doe/g, 'Support') : (popupData.sender || 'Support, 0123456789')}</div>
-            <div className="mb-1"><span className="font-semibold">Title:</span> {popupData.title}</div>
-            <div className="mb-1"><span className="font-semibold">Date:</span> {popupData.date}</div>
-            <div className="mb-1"><span className="font-semibold">Time:</span> {popupData.time || '14:32'}</div>
-            <div className="mb-1"><span className="font-semibold">Type:</span> {popupData.type || 'Debit'}</div>
-            <div className="mb-1"><span className="font-semibold">Status:</span> <span className={
-              popupData.status === 'approved' ? 'text-green-600 font-bold' : popupData.status === 'declined' ? 'text-red-600 font-bold' : 'text-yellow-600 font-bold'
-            }>{popupData.status ? popupData.status.toUpperCase() : 'PENDING'}</span></div>
-            <div className="mb-1"><span className="font-semibold">Amount:</span> <span className={
-              popupData.status === 'approved' ? 'text-green-600 font-bold' : popupData.status === 'declined' ? 'text-red-600 font-bold' : 'text-yellow-600 font-bold'
-            }>{popupData.amount}</span></div>
-            <div className="mb-1"><span className="font-semibold">Remark:</span> {popupData.remark || 'Payment for services'}</div>
+            <div ref={receiptRef} style={{background:'transparent'}}>
+              <div className="font-bold text-lg mb-2 text-center">Transaction Receipt</div>
+              <div className="mb-1"><span className="font-semibold">Transaction ID:</span> {popupData.id || 'TXN123456'}</div>
+              <div className="mb-1"><span className="font-semibold">Section ID:</span> {popupData.sectionId || 'SEC-001'}</div>
+              <div className="mb-1"><span className="font-semibold">Recipient Name:</span> {popupData.recipient === 'John Doe' || popupData.recipient === 'Jane Smith' ? 'Support' : (popupData.recipient || 'Support')}</div>
+              <div className="mb-1"><span className="font-semibold">Sender Details:</span> {popupData.sender && (popupData.sender.includes('Jane Smith') || popupData.sender.includes('John Doe')) ? popupData.sender.replace(/Jane Smith|John Doe/g, 'Support') : (popupData.sender || 'Support, 0123456789')}</div>
+              <div className="mb-1"><span className="font-semibold">Title:</span> {popupData.title}</div>
+              <div className="mb-1"><span className="font-semibold">Date:</span> {popupData.date}</div>
+              <div className="mb-1"><span className="font-semibold">Time:</span> {popupData.time || '14:32'}</div>
+              <div className="mb-1"><span className="font-semibold">Type:</span> {popupData.type || 'Debit'}</div>
+              <div className="mb-1"><span className="font-semibold">Status:</span> <span className={
+                popupData.status === 'approved' ? 'text-green-600 font-bold' : popupData.status === 'declined' ? 'text-red-600 font-bold' : 'text-yellow-600 font-bold'
+              }>{popupData.status ? popupData.status.toUpperCase() : 'PENDING'}</span></div>
+              <div className="mb-1"><span className="font-semibold">Amount:</span> <span className={
+                popupData.status === 'approved' ? 'text-green-600 font-bold' : popupData.status === 'declined' ? 'text-red-600 font-bold' : 'text-yellow-600 font-bold'
+              }>{popupData.amount}</span></div>
+              <div className="mb-1"><span className="font-semibold">Remark:</span> {popupData.remark || 'Payment for services'}</div>
+            </div>
             <div className="flex gap-4 mt-4 justify-center">
               <button onClick={async () => {
                 setPopupData(null);
@@ -234,25 +324,60 @@ export default function UserDashboard({ onShowRevenuesChart, onShowExpensesChart
       )}
       {/* Feature Popups */}
       {showAirtime && (
-        <AirtimePopup onClose={() => setShowAirtime(false)} user={user} />
+        <AirtimePopup
+          onClose={() => setShowAirtime(false)}
+          user={user}
+          onSuccess={msg => { setShowAirtime(false); setSuccessMsg(msg || 'Your transaction was successful!'); setShowSuccess(true); }}
+          onTransactionCreated={async (closePopup) => { await fetchTransactionsAndUser(); if (closePopup) closePopup(); }}
+        />
       )}
       {showData && (
-        <DataPopup onClose={() => setShowData(false)} user={user} />
+        <DataPopup
+          onClose={() => setShowData(false)}
+          user={user}
+          onSuccess={msg => { setShowData(false); setSuccessMsg(msg || 'Your transaction was successful!'); setShowSuccess(true); }}
+          onTransactionCreated={async (closePopup) => { await fetchTransactionsAndUser(); if (closePopup) closePopup(); }}
+        />
       )}
       {showBetting && (
-        <BettingPopup onClose={() => setShowBetting(false)} user={user} />
+        <BettingPopup
+          onClose={() => setShowBetting(false)}
+          user={user}
+          onSuccess={msg => { setShowBetting(false); setSuccessMsg(msg || 'Your transaction was successful!'); setShowSuccess(true); }}
+          onTransactionCreated={async (closePopup) => { await fetchTransactionsAndUser(); if (closePopup) closePopup(); }}
+        />
       )}
       {showTV && (
-        <TVPopup onClose={() => setShowTV(false)} user={user} />
+        <TVPopup
+          onClose={() => setShowTV(false)}
+          user={user}
+          onSuccess={msg => { setShowTV(false); setSuccessMsg(msg || 'Your transaction was successful!'); setShowSuccess(true); }}
+          onTransactionCreated={async (closePopup) => { await fetchTransactionsAndUser(); if (closePopup) closePopup(); }}
+        />
       )}
       {showSafeBox && (
-        <SafeBoxPopup onClose={() => setShowSafeBox(false)} user={user} />
+        <SafeBoxPopup
+          onClose={() => setShowSafeBox(false)}
+          user={user}
+          onSuccess={msg => { setShowSafeBox(false); setSuccessMsg(msg || 'Your transaction was successful!'); setShowSuccess(true); }}
+          onTransactionCreated={async (closePopup) => { await fetchTransactionsAndUser(); if (closePopup) closePopup(); }}
+        />
       )}
       {showLoan && (
-        <LoanPopup onClose={() => setShowLoan(false)} user={user} />
+        <LoanPopup
+          onClose={() => setShowLoan(false)}
+          user={user}
+          onSuccess={msg => { setShowLoan(false); setSuccessMsg(msg || 'Your transaction was successful!'); setShowSuccess(true); }}
+          onTransactionCreated={async (closePopup) => { await fetchTransactionsAndUser(); if (closePopup) closePopup(); }}
+        />
       )}
       {showRefer && (
-        <ReferPopup onClose={() => setShowRefer(false)} user={user} />
+        <ReferPopup
+          onClose={() => setShowRefer(false)}
+          user={user}
+          onSuccess={msg => { setShowRefer(false); setSuccessMsg(msg || 'Your transaction was successful!'); setShowSuccess(true); }}
+          onTransactionCreated={async (closePopup) => { await fetchTransactionsAndUser(); if (closePopup) closePopup(); }}
+        />
       )}
       <style>{`
         .glassy {
@@ -298,7 +423,7 @@ export default function UserDashboard({ onShowRevenuesChart, onShowExpensesChart
           {/* Balance Centered */}
           <div className="mb-4 flex flex-col items-center">
             <div className="text-white text-lg font-semibold text-center">TODAY</div>
-            <div className="text-3xl font-bold text-white tracking-wide text-center">{typeof user.balance === 'number' ? user.balance.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) : '0.00'} $</div>
+            <div className="text-3xl font-bold text-white tracking-wide text-center">{typeof displayBalance === 'number' ? displayBalance.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) : '0.00'} $</div>
             <div className="flex items-center gap-2 mt-1 justify-center">
               <span className="bg-green-500/80 text-white text-xs px-2 py-0.5 rounded-full">{user.balance ? '+' + user.balance.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) : '+0.00'} $</span>
               <span className="text-white/60 text-xs">Main Account Balance</span>
@@ -348,23 +473,23 @@ export default function UserDashboard({ onShowRevenuesChart, onShowExpensesChart
                 </button>
                 {/* New Feature Cards */}
                 <button className="stat-card bg-yellow-400/90 rounded-xl p-3 text-white shadow-md hover:scale-105 focus:outline-none" onClick={() => setShowAirtime(true)}>
-                  <div className="text-xs">AIRTIME</div>
+                  <div className="text-xs">MOBILE TOP-UP</div>
                   <div className="text-lg font-bold">Buy</div>
                 </button>
                 <button className="stat-card bg-blue-400/90 rounded-xl p-3 text-white shadow-md hover:scale-105 focus:outline-none" onClick={() => setShowData(true)}>
-                  <div className="text-xs">DATA</div>
+                  <div className="text-xs">INTERNET</div>
                   <div className="text-lg font-bold">Buy</div>
                 </button>
                 <button className="stat-card bg-purple-500/90 rounded-xl p-3 text-white shadow-md hover:scale-105 focus:outline-none" onClick={() => setShowBetting(true)}>
-                  <div className="text-xs">BETTING</div>
+                  <div className="text-xs">GAMING</div>
                   <div className="text-lg font-bold">Fund</div>
                 </button>
                 <button className="stat-card bg-orange-400/90 rounded-xl p-3 text-white shadow-md hover:scale-105 focus:outline-none" onClick={() => setShowTV(true)}>
-                  <div className="text-xs">TV</div>
+                  <div className="text-xs">CABLE TV</div>
                   <div className="text-lg font-bold">Pay</div>
                 </button>
                 <button className="stat-card bg-gray-700/90 rounded-xl p-3 text-white shadow-md hover:scale-105 focus:outline-none" onClick={() => setShowSafeBox(true)}>
-                  <div className="text-xs">SAFE BOX</div>
+                  <div className="text-xs">SAVINGS</div>
                   <div className="text-lg font-bold">Save</div>
                 </button>
                 <button className="stat-card bg-red-400/90 rounded-xl p-3 text-white shadow-md hover:scale-105 focus:outline-none" onClick={() => setShowLoan(true)}>
@@ -372,7 +497,7 @@ export default function UserDashboard({ onShowRevenuesChart, onShowExpensesChart
                   <div className="text-lg font-bold">Apply</div>
                 </button>
                 <button className="stat-card bg-teal-400/90 rounded-xl p-3 text-white shadow-md hover:scale-105 focus:outline-none" onClick={() => setShowRefer(true)}>
-                  <div className="text-xs">REFER</div>
+                  <div className="text-xs">REFER A FRIEND</div>
                   <div className="text-lg font-bold">Earn</div>
                 </button>
                 {user.isAdmin && (

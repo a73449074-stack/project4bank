@@ -30,7 +30,7 @@ function getRandomList(list, n = 3) {
   return shuffled.slice(0, n);
 }
 
-export default function WithdrawPopup({ setShowTransactionPopup }) {
+export default function WithdrawPopup({ setShowTransactionPopup, onSuccess, onTransactionCreated }) {
   const [step, setStep] = useState(0); // 0: choose, 1: list, 2: amount, 3: confirm, 4: processing
   const [mode, setMode] = useState(null); // 'atm' | 'pos'
   const [options, setOptions] = useState([]);
@@ -162,6 +162,11 @@ export default function WithdrawPopup({ setShowTransactionPopup }) {
             onChange={e => { setPin(e.target.value); setPinError(''); }}
             minLength={4}
             autoFocus
+            autoComplete="new-password"
+            inputMode="numeric"
+            autoCorrect="off"
+            spellCheck="false"
+            name="pin_" id="pin_" // random name/id
           />
           {pinError && <div className="text-red-500 text-xs text-center mb-2">{pinError}</div>}
           <div className="flex gap-2 mt-2">
@@ -195,9 +200,11 @@ export default function WithdrawPopup({ setShowTransactionPopup }) {
                   setProcessing(false);
                   return;
                 }
-                setTimeout(() => {
+                setTimeout(async () => {
                   setProcessing(false);
                   setShowTransactionPopup(null);
+                  if (onTransactionCreated) await onTransactionCreated(() => setShowTransactionPopup(null));
+                  if (onSuccess) onSuccess();
                 }, 1000);
               }}
             >

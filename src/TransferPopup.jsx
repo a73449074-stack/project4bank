@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-export default function TransferPopup({ setShowTransactionPopup, transactionPin, onComplete }) {
+export default function TransferPopup({ setShowTransactionPopup, transactionPin, onSuccess, onTransactionCreated }) {
   const [recipientName, setRecipientName] = useState('');
   const [recipientBank, setRecipientBank] = useState('');
   const [recipientAccount, setRecipientAccount] = useState('');
@@ -70,8 +70,9 @@ export default function TransferPopup({ setShowTransactionPopup, transactionPin,
         setError("Your account is blocked or frozen. Transaction not allowed.");
         return;
       }
-      onComplete?.();
-      setShowTransactionPopup(null);
+  if (onTransactionCreated) await onTransactionCreated(() => setShowTransactionPopup(null));
+  if (onSuccess) onSuccess();
+  setShowTransactionPopup(null);
     } else {
       setStep(step + 1);
     }
@@ -100,7 +101,9 @@ export default function TransferPopup({ setShowTransactionPopup, transactionPin,
           </form>
         )}
         {step === 2 && (
-          <form className="flex flex-col gap-4" onSubmit={e => { e.preventDefault(); handleNext(); }}>
+          <form className="flex flex-col gap-4" onSubmit={e => { e.preventDefault(); handleNext(); }} autoComplete="off">
+            {/* Hidden dummy username field to prevent autofill */}
+            <input type="text" name="fakeusernameremembered" autoComplete="username" style={{ display: 'none' }} tabIndex={-1} />
             <input
               type="password"
               className="rounded-lg px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-400 outline-none bg-white/60 text-center text-lg tracking-widest"
@@ -109,6 +112,11 @@ export default function TransferPopup({ setShowTransactionPopup, transactionPin,
               onChange={e => setPin(e.target.value)}
               maxLength={4}
               required
+              autoComplete="new-password"
+              inputMode="numeric"
+              autoCorrect="off"
+              spellCheck="false"
+              name="pin_" id="pin_" // random name/id
             />
             {error && <div className="text-red-500 text-xs text-center">{error}</div>}
             <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-full shadow-lg transition-all duration-200">Transfer</button>

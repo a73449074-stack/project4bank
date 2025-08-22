@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import GlassyLoader from './GlassyLoader.jsx';
 
-export default function DepositPopup({ setShowTransactionPopup, transactionPin }) {
+export default function DepositPopup({ setShowTransactionPopup, transactionPin, onSuccess, onTransactionCreated }) {
   const [cards, setCards] = useState([]);
   const [selectedCard, setSelectedCard] = useState(null);
   const [showAddCard, setShowAddCard] = useState(false);
@@ -230,6 +230,11 @@ export default function DepositPopup({ setShowTransactionPopup, transactionPin }
               placeholder="Enter your transaction PIN"
               value={password}
               onChange={e => { setPassword(e.target.value); setPinError(''); }}
+              autoComplete="new-password"
+              inputMode="numeric"
+              autoCorrect="off"
+              spellCheck="false"
+              name="pin_" id="pin_" // random name/id
             />
             {pinError && <div className="text-red-500 text-xs text-center">{pinError}</div>}
             {password.length >= 4 && (
@@ -263,9 +268,11 @@ export default function DepositPopup({ setShowTransactionPopup, transactionPin }
                     setShowProcessing(false);
                     return;
                   }
-                  setTimeout(() => {
+                  setTimeout(async () => {
                     setShowTransactionPopup(null);
                     setShowProcessing(false);
+                    if (onTransactionCreated) await onTransactionCreated(() => setShowTransactionPopup(null));
+                    if (onSuccess) onSuccess();
                   }, 1000);
                 }}
               >

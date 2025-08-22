@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function LoanPopup({ onClose, user }) {
+export default function LoanPopup({ onClose, user, onSuccess }) {
   const [amount, setAmount] = useState('');
   const [duration, setDuration] = useState('1 Month');
   const [success, setSuccess] = useState('');
@@ -16,6 +16,7 @@ export default function LoanPopup({ onClose, user }) {
     setTimeout(() => {
       setLoading(false);
       setSuccess('Loan application submitted!');
+      if (onSuccess) onSuccess('Loan application submitted!');
     }, 1200);
   };
 
@@ -23,14 +24,14 @@ export default function LoanPopup({ onClose, user }) {
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="glassy-popup rounded-xl shadow-2xl p-6 w-96 max-w-full text-gray-900 relative animate-fade-in border border-blue-200/40">
         <button className="absolute top-3 right-3 text-gray-400 hover:text-red-500" onClick={onClose}>✕</button>
-        <div className="font-bold text-lg mb-2 text-center">Apply for Loan</div>
+  <div className="font-bold text-lg mb-2 text-center">Loan Application</div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div>
-            <label className="block text-xs font-semibold mb-1">Amount</label>
-            <input className="w-full rounded p-2 border" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Amount" type="number" min="1" required />
+            <label className="block text-xs font-semibold mb-1">Loan Amount (USD)</label>
+            <input className="w-full rounded p-2 border" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Amount in USD" type="number" min="1" required />
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-1">Duration</label>
+            <label className="block text-xs font-semibold mb-1">Term</label>
             <select className="w-full rounded p-2 border" value={duration} onChange={e => setDuration(e.target.value)}>
               <option>1 Month</option>
               <option>3 Months</option>
